@@ -1,0 +1,328 @@
+/* --------------------------------------------------
+ * RESET + BASE STYLES
+ * -------------------------------------------------- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, html {
+  height: 100%;
+  width: 100%;
+  font-family: 'Segoe UI', sans-serif;
+  overflow-y: scroll;
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE 10+ */
+}
+
+body::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+
+/* --------------------------------------------------
+ * HERO SECTION: WRAPPER & BACKGROUND
+ * -------------------------------------------------- */
+ 
+.hero {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: #000;
+}
+
+.hero-inner {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('bg.png') no-repeat center center;
+  background-size: cover;
+  animation: kenburns-top-right 5s ease-out forwards;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-inner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1;
+}
+
+
+/* --------------------------------------------------
+ * HERO CONTENT TEXT (Main Intro)
+ * -------------------------------------------------- */
+
+.hero-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  color: #fff;
+  text-align: center;
+  animation: move-to-top-left 1s ease-out 5s forwards;
+}
+
+.hero-content h1 {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.hero-content p {
+  font-size: 1.2rem;
+  font-weight: 300;
+}
+
+
+/* --------------------------------------------------
+ * HERO INTRO PARAGRAPH + SKILLS LIST
+ * -------------------------------------------------- */
+
+
+.hero-intro {
+  position: absolute;
+  margin-top: 300px;
+  margin-left: -200px;
+  color: #ffffff;
+  opacity: 0;
+  font-size: x-large;
+  animation: fadein-right 1s ease-out 6.5s forwards;
+}
+
+.skills-list {
+  list-style: none;
+  padding: 10px 0 0;
+  margin: 0;
+}
+
+.skills-list li {
+  opacity: 0;
+  transform: translateX(30px);
+  animation: slide-in 0.4s ease-out forwards;
+}
+
+.skills-list li:nth-child(1) { animation-delay: 7s; }
+.skills-list li:nth-child(2) { animation-delay: 7.5s; }
+.skills-list li:nth-child(3) { animation-delay: 8s; }
+.skills-list li:nth-child(4) { animation-delay: 8.5s; }
+.skills-list li:nth-child(5) { animation-delay: 9s; }
+
+
+/* --------------------------------------------------
+ * KEYFRAMES
+ * -------------------------------------------------- */
+
+/* Ken Burns Zoom Top-Right */
+@keyframes kenburns-top-right {
+  0% {
+    transform: scale(1) translate(0, 0);
+    transform-origin: 84% 50%;
+  }
+  100% {
+    transform: scale(1.07) translate(10px, -10px);
+    transform-origin: top right;
+  }
+}
+
+/* Fade-in From Bottom */
+@keyframes fadein {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Move Intro to Top-Left */
+@keyframes move-to-top-left {
+  0% {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  100% {
+    top: 100px;
+    left: 120px;
+    transform: translate(0, 0);
+    text-align: left;
+  }
+}
+
+/* Fade-In From Right (Intro Para) */
+@keyframes fadein-right {
+  0% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Skill Bullets Slide-In */
+@keyframes slide-in {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+
+/* --------------------------------------------------
+ * shape DIVIDER
+ * -------------------------------------------------- */
+
+
+.custom-shape-divider-top-about {
+  position: relative;
+  top: -100px; /* just overlaps */
+  width: 1570px;
+  left: -50px;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.custom-shape-divider-top-about svg {
+  position: relative;
+  display: block;
+  width: calc(100% + 1.3px);
+  height: 100px;
+  transform: rotate(180deg); /* flip vertically to appear at top */
+}
+
+.custom-shape-divider-top-about .shape-fill {
+  fill: rgba(0, 0, 0, 0.893); /* 🖤 Adjust color to match next section */
+}
+
+
+/* --------------------------------------------------
+ * ABOUT ME SECTION
+ * -------------------------------------------------- */
+/* Base Section */
+
+.about-me {
+  padding: 100px 20px;
+  background-color: #989494;
+  color: #111;
+  text-align: center;
+  position: relative;
+  margin-top: 0px;
+}
+
+.about-me h2 {
+  font-size: 2.5rem;
+  margin-top: 20px;
+}
+
+.about-me p {
+  font-size: 1.2rem;
+  max-width: 700px;
+  margin: auto auto 40px;
+}
+
+/* ──────────────────────────────────────
+   🔹 ABOUT ME GRID AND CARD STYLES
+────────────────────────────────────── */
+/* Initial state */
+.about-grid {
+  display: grid;
+  grid-template-areas:
+    "reactjs responsive"
+    "projects uiux";
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 10px;
+  width: 1300px;
+  margin: 0 auto;
+}
+
+.reactjs    { grid-area: reactjs; }
+.responsive { grid-area: responsive; }
+.projects   { grid-area: projects; }
+.uiux       { grid-area: uiux; }
+
+.about-card {
+  background: #fff7e6;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.559);
+  opacity: 0;
+  transform: scale(0.7);
+  text-align: center;
+  transition: all 0.4s ease;
+}
+
+.about-card.animate {
+  animation-duration: 0.8s;
+  animation-timing-function: cubic-bezier(0.25, 1.4, 0.4, 1);
+  animation-fill-mode: both;
+}
+.about-card h3 {
+  font-size: 1.5rem;
+  margin: 20px 0;
+}
+
+/* When animated */
+.about-card.animate {
+  animation-duration: 0.8s;
+  animation-timing-function: cubic-bezier(0.25, 1.4, 0.4, 1);
+  animation-fill-mode: both;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px; /* reduce this to make cards closer */
+  margin: auto;
+  padding: 0 15rem;
+}
+
+/* Optional reverse animation (when leaving) */
+.about-card.exit {
+  opacity: 0;
+  transform: scale(0.7);
+}
+
+/* Funny animations */
+@keyframes slide-in-left {
+  0% { transform: translateX(-2000px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-out-left {
+  0% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(-2000px); opacity: 0; }
+}
+
+@keyframes slide-in-right {
+  0% { transform: translateX(2000px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-out-right {
+  0% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(2000px); opacity: 0; }
+}
+
+
+/* Assign animation based on data-animate */
+.about-card.animate[data-animate="left"]   { animation-name: slide-in-left; }
+.about-card.animate[data-animate="right"]  { animation-name: slide-in-right; }
+.about-card.animate[data-animate="top"]    { animation-name: slide-in-top; }
+.about-card.animate[data-animate="bottom"] { animation-name: slide-in-bottom; }
+
+
+.about-card1.exit[data-animate="left"],
+.about-card2.exit[data-animate="left"] {
+  animation: slide-out-left 0.5s ease forwards;
+}
+.about-card3.exit[data-animate="right"],
+.about-card4.exit[data-animate="right"] {
+  animation: slide-out-right 0.5s ease forwards;
+}
