@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Live Location Finder</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Custom transition for button color */
+        .btn-transition {
+            transition: background-color 0.3s ease-in-out;
+        }
+        #map {
+            height: 60vh; /* Adjusted height */
+            width: 100%;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col items-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl bg-white p-6 rounded-lg shadow-lg">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">Live Location Finder</h1>
+            <p class="text-gray-600 mt-2">Add recipient numbers, then find your location to send it via SMS.</p>
+        </header>
+
+        <div class="w-full max-w-xl mx-auto mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Recipient Phone Numbers (for SMS):</label>
+            <div id="phone-numbers-container" class="space-y-2">
+                <!-- Phone number inputs will be dynamically added here -->
+            </div>
+            <div class="mt-2 flex items-center gap-4">
+                <button onclick="addPhoneNumberInput()" class="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                    </svg>
+                    Add Manually
+                </button>
+                <button id="contact-picker-btn" onclick="selectContacts()" class="flex items-center gap-2 text-sm text-green-600 hover:text-green-800 font-medium">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 11a1 1 0 00-1 1v2h-2a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2v-2a1 1 0 00-1-1z" />
+                    </svg>
+                    Select from Contacts
+                </button>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-center gap-4 mb-4">
+            <button id="toggle-btn" onclick="toggleTracking()" class="w-full sm-w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 btn-transition">
+                Find & Send Location
+            </button>
+        </div>
+
+        <div id="status" class="text-center text-gray-500 h-6 mb-4">Ready to find you!</div>
+
+        <div id="map-container" class="w-full">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // --- Map Initialization ---
+        const map = L.map('map').setView([20.5937, 78.9629], 5); // Default India view
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // --- State Variables ---
+        let marker;
+        let watchId;
+        let isTracking = false;
+        let lastPosition;
+        let locationSentThisSession = false;
+        
+        // --- DOM Elements ---
+        const toggleBtn = document.getElementById('toggle-btn');
+        const statusDiv = document.getElementById('status');
+        const phoneNumbersContainer = document.getElementById('phone-numbers-container');
+        const contactPickerBtn = document.getElementById('contact-picker-btn');
+        
+        // --- Marker Icon ---
+        const customIcon = L.icon({
+            iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34],
+            shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+            shadowSize: [41, 41], shadowAnchor: [12, 41]
+        });
+        
+        // --- Initial Setup ---
+        window.onload = () => {
+            // Check for Contact Picker API support
+            if (!('contacts' in navigator && 'select' in navigator.contacts)) {
+                contactPickerBtn.style.display = 'none';
+            }
+            addPhoneNumberInput(); // Add the first input field on page load
+        };
+
+        // --- Core Functions ---
+        
+        async function selectContacts() {
+            try {
+                const contacts = await navigator.contacts.select(['tel'], { multiple: true });
+                if (contacts.length === 0) {
+                    return; // User cancelled or selected no one
+                }
+                contacts.forEach(contact => {
+                    if (contact.tel && contact.tel.length > 0) {
+                        // Add a new input for each selected contact's first phone number
+                        addPhoneNumberInput(contact.tel[0]);
+                    }
+                });
+            } catch (ex) {
+                // Handle errors, such as the user dismissing the picker
+                console.error("Contact Picker API error:", ex);
+                updateStatus("Could not get contacts. Please add numbers manually.", "error");
+            }
+        }
+
+        function addPhoneNumberInput(value = '') {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2';
+            div.innerHTML = `
+                <input type="tel" value="${value}" placeholder="Number with country code (e.g., 91...)" class="phone-number-input w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                <button onclick="this.parentElement.remove()" class="p-1 text-red-500 hover:text-red-700 rounded-full hover:bg-red-100 flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </button>
+            `;
+            phoneNumbersContainer.appendChild(div);
+        }
+
+        function toggleTracking() {
+            isTracking = !isTracking;
+            if (isTracking) startTracking();
+            else stopTracking();
+        }
+
+        function startTracking() {
+            if (!navigator.geolocation) {
+                updateStatus("Geolocation is not supported by your browser.", "error");
+                isTracking = false;
+                return;
+            }
+            locationSentThisSession = false; // Reset flag each time tracking starts
+            toggleBtn.textContent = "Stop Tracking";
+            toggleBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            toggleBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+            updateStatus("Requesting location access...", "info");
+            
+            const options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+            watchId = navigator.geolocation.watchPosition(handleLocationSuccess, handleLocationError, options);
+        }
+
+        function stopTracking() {
+            if (watchId !== undefined) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = undefined;
+            }
+            toggleBtn.textContent = "Find & Send Location";
+            toggleBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+            toggleBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            updateStatus("Tracking stopped.", "info");
+        }
+
+        function handleLocationSuccess(position) {
+            lastPosition = position;
+            const { latitude, longitude } = position.coords;
+            updateMap(latitude, longitude);
+            
+            if (!locationSentThisSession) {
+                updateStatus(`Location found. Opening Messaging App...`, "success");
+                sendToAllSms();
+                locationSentThisSession = true;
+            } else {
+                 const timestamp = new Date().toLocaleTimeString();
+                 updateStatus(`Location updated at ${timestamp}`, "success");
+            }
+        }
+
+        function handleLocationError(error) {
+            let message = "An unknown error occurred.";
+            if (error.code === error.PERMISSION_DENIED) message = "Location access was denied.";
+            if (error.code === error.POSITION_UNAVAILABLE) message = "Location information is unavailable.";
+            if (error.code === error.TIMEOUT) message = "The request to get your location timed out.";
+            updateStatus(message, "error");
+            if (isTracking) toggleTracking(); // Stop tracking on error
+        }
+
+        function updateMap(lat, lng) {
+            const newPosition = [lat, lng];
+            map.flyTo(newPosition, 16); 
+            if (!marker) marker = L.marker(newPosition, {icon: customIcon}).addTo(map);
+            else marker.setLatLng(newPosition);
+            marker.bindPopup(`<b>Your Location:</b><br>Lat: ${lat.toFixed(6)}<br>Lon: ${lng.toFixed(6)}`).openPopup();
+        }
+
+        function sendToAllSms() {
+            const numberInputs = document.querySelectorAll('.phone-number-input');
+            const phoneNumbers = Array.from(numberInputs).map(input => input.value.replace(/\D/g, '')).filter(num => num.length >= 10);
+
+            if (phoneNumbers.length === 0) {
+                updateStatus("Please enter or select at least one valid phone number.", "error");
+                if (isTracking) toggleTracking(); // Stop if no numbers
+                return;
+            }
+
+            if (!lastPosition) {
+                updateStatus("Could not get your location to send.", "error");
+                return;
+            }
+
+            const { latitude, longitude } = lastPosition.coords;
+            const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+            const message = `EMERGENCY! This is my current location: ${mapsUrl}`;
+            
+            const encodedMessage = encodeURIComponent(message);
+
+            phoneNumbers.forEach((number, index) => {
+                setTimeout(() => {
+                    const smsUrl = `sms:${number}?body=${encodedMessage}`;
+                    window.open(smsUrl, '_blank');
+                }, index * 500);
+            });
+
+            updateStatus(`Opening Messaging App for ${phoneNumbers.length} number(s). Please confirm sending.`, "success");
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = 'text-center h-6 mb-4 '; // Reset classes
+            switch (type) {
+                case 'success': statusDiv.classList.add('text-green-600'); break;
+                case 'error': statusDiv.classList.add('text-red-600'); break;
+                default: statusDiv.classList.add('text-gray-500'); break;
+            }
+        }
+    </script>
+</body>
+</html>
+
